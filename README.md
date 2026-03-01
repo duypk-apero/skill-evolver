@@ -8,7 +8,7 @@ Like Google Analytics for your skills — tracks usage, detects user reactions, 
 
 ```bash
 # install
-claude plugin marketplace add https://github.com/haidang1810/skill-evolver
+claude plugin marketplace add https://github.com/duypk-apero/skill-evolver
 claude plugin install skill-evolver
 # update
 claude plugin marketplace update skill-evolver
