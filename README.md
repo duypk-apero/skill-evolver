@@ -1,18 +1,16 @@
-# Skill Evolver (Fork)
+# Skill Evolver
 
-Analytics and health monitoring for Claude Code skills. Like Google Analytics for your skills — tracks usage, detects user reactions, monitors health trends, and enables A/B testing. All data stays local in SQLite.
+Analytics and health monitoring for Claude Code skills.
 
-> **Fork changes:** Per-project database isolation — each project gets its own metrics DB, keyed by `git remote`. Enables multi-project teams without metrics mixing.
-
-Upstream: [haidang1810/skill-evolver](https://github.com/haidang1810/skill-evolver)
+Like Google Analytics for your skills — tracks usage, detects user reactions, monitors health trends, and enables A/B testing. All data stays local in SQLite.
 
 ## Install
 
 ```bash
-claude plugin marketplace add https://github.com/duypk-apero/skill-evolver
+# install
+claude plugin marketplace add https://github.com/haidang1810/skill-evolver
 claude plugin install skill-evolver
-
-# Update
+# update
 claude plugin marketplace update skill-evolver
 claude plugin uninstall skill-evolver
 claude plugin install skill-evolver
@@ -20,55 +18,87 @@ claude plugin install skill-evolver
 
 ## Features
 
-- **Usage Tracking** — auto-captures skill invocations, tokens, duration, model
-- **Reaction Detection** — classifies user response: satisfied, correction, follow-up, retry, cancel
-- **Health Monitoring** — alerts on satisfaction drops >15%, token bloat >30%, cancel >10%
-- **Correction Clustering** — TF-IDF keyword analysis of correction messages
-- **Version Tracking** — auto-snapshots SKILL.md with per-version metrics
-- **Skill Guards** — blocks edits exceeding 500 lines, >30% growth, >3 step variance
-- **A/B Testing** — 50/50 random assignment, min 20 runs for significance
-- **Per-Project Isolation** — separate SQLite DB per git remote (fork feature)
+### Skill Usage Tracking
+Automatically tracks every skill invocation via hooks:
+- Skill name, trigger type (explicit/auto), arguments
+- Token consumption, tool calls, duration
+- Skill version hash, model used
 
-## Commands
+### User Reaction Detection
+Classifies user's next message after a skill runs:
+- **Satisfied** — "thanks", "looks good", topic change
+- **Correction** — "no, actually...", "change that..."
+- **Follow-up** — "also check...", "you forgot..."
+- **Retry** — Same skill invoked again immediately
+- **Cancel** — Interrupted mid-execution
 
-| Command | Purpose |
-|---------|---------|
-| `/skill-stats` | Usage overview |
-| `/skill-stats <name>` | Single skill deep dive |
-| `/skill-health` | Health alerts |
-| `/skill-corrections <name>` | Correction patterns |
-| `/skill-history <name>` | Version timeline |
-| `/skill-rollback <name>` | Restore previous version |
-| `/skill-compare <name>` | Side-by-side version diff |
+### Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/skill-stats` | Overview of all skills (top usage, alerts) |
+| `/skill-stats <name>` | Detailed analytics for one skill |
+| `/skill-corrections <name>` | Raw corrections + keyword clusters |
+| `/skill-health` | Health check all skills |
+| `/skill-health <name>` | Detailed health check for one skill |
+| `/skill-history <name>` | Version timeline with metrics |
+| `/skill-rollback <name>` | Rollback to a previous version |
+| `/skill-compare <name>` | Compare two versions side-by-side |
 | `/skill-ab start <name> <path>` | Start A/B test |
-| `/skill-ab status` | Active tests |
-| `/skill-ab result <name>` | Test outcome |
-| `/skill-export <name>` | CSV/JSON export |
+| `/skill-ab status` | View active A/B tests |
+| `/skill-ab result <name>` | View A/B test results |
+| `/skill-export <name>` | Export data to CSV/JSON |
 
-## Per-Project Isolation (Fork Feature)
+### Health Monitoring
+Detects skill degradation:
+- Satisfaction trend drops (> 15%)
+- Token creep (> 30% above baseline)
+- High cancel rate (> 10%)
+- High correction rate (> 25%)
+- Model changes
+- SKILL.md file changes
 
-Each project gets its own DB automatically:
+### Skill Guards
+Validates SKILL.md changes against drift thresholds:
+- Line count limit (500 lines max)
+- Line drift from baseline (30% max growth)
+- Step count drift (±3 steps from baseline)
+- Description length (200 chars max)
+- Token budget drift
 
-```
-~/.claude/plugins/.../data/
-├── skill-evolver-3a7f2b1c.db   ← project A (from git remote hash)
-├── skill-evolver-8e4d9f02.db   ← project B
-└── skill-evolver-c1a5b7e3.db   ← project C (CWD fallback if no git)
-```
+### Version Tracking
+Automatic SKILL.md snapshots with:
+- Content hash + line count
+- Parent version linkage
+- Metrics per version
+- One-command rollback
 
-No config needed. Works for teams with multiple projects.
+### A/B Testing
+Compare two skill versions with real usage data:
+- Random 50/50 version assignment
+- Satisfaction, tokens, correction rate comparison
+- Statistical significance caveat
 
 ## Design Philosophy
 
-1. **Data-driven** — regex + TF-IDF, no LLM for analysis
-2. **Human-in-the-loop** — data reveals patterns, you decide changes
-3. **Zero config** — install and tracking starts automatically
-4. **Privacy-first** — local SQLite only, zero telemetry
-5. **Minimal overhead** — async hooks, <100ms
+1. **Data-driven, not AI-driven** — Measures and displays, never uses LLM to auto-fix
+2. **Human-in-the-loop** — You decide what to change based on data
+3. **Zero config** — Install and it tracks automatically
+4. **Minimal overhead** — Async hooks, never blocks Claude
+5. **Privacy-first** — All data in local SQLite, nothing sent externally
 
 ## Tech Stack
 
-Node.js (ESM) · SQLite (better-sqlite3) · TF-IDF (built-in) · SHA-256 hashing
+- **Runtime:** Node.js (ES Modules)
+- **Storage:** SQLite via better-sqlite3
+- **Keyword extraction:** Built-in TF-IDF (no deps)
+- **Hashing:** Node.js crypto
+
+## Data Storage
+
+Database: `<plugin-root>/data/skill-evolver.db`
+
+Tables: `skill_runs`, `reactions`, `skill_versions`, `ab_tests`, `ab_runs`, `guard_configs`
 
 ## License
 
